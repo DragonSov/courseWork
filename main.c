@@ -4,10 +4,6 @@
 #include <ctype.h>
 #include <stdlib.h>
 
-#ifdef _WIN32
-#include <windows.h>
-#endif
-
 #define MAX_REC 100
 #define MAX_STR 128
 #define FILE_NAME "monoblocks.txt"
@@ -103,10 +99,6 @@ static int parseFloatOr0(const char* s, float* out) {
     return 1;
 }
 
-/*
-  Разбивает строку по '|' и ВАЖНО: сохраняет пустые поля.
-  Пример: "Apple||i5" -> tokens: "Apple", "", "i5"
-*/
 static int splitPipePreserveEmpty(char* line, char* out[], int expectedCount) {
     int n = 0;
     char* p = line;
@@ -359,13 +351,11 @@ static void loadFromFile(void) {
     while (dbSize < MAX_REC && fgets(line, sizeof(line), f)) {
         line[strcspn(line, "\r\n")] = '\0';
 
-        // пропускаем реально пустые строки (а не "пустые поля")
         if (line[0] == '\0') continue;
 
         char* fields[9];
         splitPipePreserveEmpty(line, fields, 9);
 
-        // лечим BOM в самом начале файла (портит первый "производитель")
         stripUtf8Bom(fields[0]);
 
         Monoblock* m = &db[dbSize];
@@ -375,7 +365,6 @@ static void loadFromFile(void) {
         setStr(m->cpu, fields[2]);
         setStr(m->gpu, fields[3]);
 
-        // если поля пустые/кривые — запись всё равно грузим, значения ставим 0
         parseIntOr0(fields[4], &m->ramGB);
         parseUIntOr0(fields[5], &m->ssdGB);
         parseDoubleOr0(fields[6], &m->screenDiagonal);
@@ -425,11 +414,6 @@ static void menu(void) {
 }
 
 int main(void) {
-#ifdef _WIN32
-    // Чтобы русские строки и ввод работали в Windows-консоли (если используешь UTF-8):
-    SetConsoleCP(65001);
-    SetConsoleOutputCP(65001);
-#endif
     setlocale(LC_ALL, "");
 
     int cmd;
